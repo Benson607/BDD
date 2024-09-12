@@ -429,15 +429,12 @@ int main(int argc, char* argv[]) {
 	
 	BDD::make_tree();
 	BDD::make_easy();
-	cout << BDD::get_link_data();
+	BDD::print_out();
 
 	src.close();
 
 	ofstream trg;
-	trg.open(argv[2], ios::out);
-	if (!trg) {
-		trg.open(argv[2], ios::app);
-	}
+	trg.open(argv[2], ios::app);
 
 	string file_name = "";
 	for (int i =0; i < sizeof(argv[2]) / sizeof(char); i++) {
