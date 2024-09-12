@@ -434,8 +434,8 @@ int main(int argc, char* argv[]) {
 	src.close();
 
 	ofstream trg;
-	trg.open(argv[2], ios::app);
-
+	trg.open(argv[2], ios::ate);
+	
 	string file_name = "";
 	for (int i =0; i < sizeof(argv[2]) / sizeof(char); i++) {
 		if (argv[2][i] == '/') {
