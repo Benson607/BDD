@@ -57,8 +57,9 @@ namespace BDD {
 	int input_size;
 	int output_size;
 	vector<string> name_list;
-	string func_name;
+	vector<string> output_list;
 	vector<string> solution_list;
+	vector<string> unsolution_list;
 	int get_solution(string solution, int first_reg = 1) {
 		if (first_reg) {
 			if (solution.length() != input_size) {
@@ -84,10 +85,40 @@ namespace BDD {
 
 		return 1;
 	}
+	int get_unsolution(string solution, int first_reg = 1) {
+		if (first_reg) {
+			if (solution.length() != input_size) {
+				return 0;
+			}
+			for (int i = 0; i < input_size; i++) {
+				if (solution[i] != '0' && solution[i] != '1' && solution[i] != '-') {
+					return -1;
+				}
+			}
+		}
+		for (int i = 0; i < input_size; i++) {
+			if (solution[i] == '-') {
+				solution[i] = '0';
+				get_unsolution(solution, 0);
+				solution[i] = '1';
+				get_unsolution(solution, 0);
+				return 1;
+			}
+		}
+
+		unsolution_list.push_back(solution);
+
+		return 1;
+	}
 	int compute(string solution) {
 		for (string i: solution_list) {
 			if (i == solution) {
 				return 1;
+			}
+		}
+		for (string i: unsolution_list) {
+			if (i == solution) {
+				return 0;
 			}
 		}
 		return 0;
@@ -112,7 +143,7 @@ namespace BDD {
 			solution.push_back('1');
 			make_tree(x->th, times + 1, solution);
 		}
-		if (times == input_size - 1) {
+		else {
 			x->name = name_list[times];
 			x->num = num_now;
 			solution.push_back('1');
@@ -130,6 +161,16 @@ namespace BDD {
 			else {
 				x->el = &zero;
 			}
+		}
+		if (!times) {
+			if (*x->th == *x->el) {
+				if (x->th != &zero && x->th != &one) {
+					delete x->th;
+				}
+				x->th = x->el;
+			}
+			x = tree.th;
+			tree = *x;
 		}
 		return 1;
 	}
@@ -347,6 +388,11 @@ int main(int argc, char* argv[]) {
 	
 	ifstream src;
 	src.open(argv[1], ios::in);
+
+	if (!src) {
+		cout << "can not open " << argv[1] << endl;
+		return -2;
+	}
 	
 	string order;
 	while (getline(src, order)) {
@@ -387,29 +433,49 @@ int main(int argc, char* argv[]) {
 			}
         }
 		else if (op == ".ob") {
-			orderstream >> BDD::func_name;
-			cout << "set function name " << BDD::func_name << endl;
+			string output_name;
+			while (orderstream >> output_name) {
+				BDD::output_list.push_back(output_name);
+			}
+			if (BDD::output_list.size() != BDD::output_size) {
+				cout << ".ob amount not correct" << endl;
+				return -5;
+			}
+			cout << "set function name ";
+			for (string i: BDD::output_list) {
+				cout << i << " ";
+			}
+			cout << endl;
         }
 		else if (op == ".p") {
 			int times;
 			orderstream >> times;
 			for (int i = 0; i < times; i++) {
 				string solution;
+				string ans;
 				getline(src, solution);
 				istringstream solutionstream(solution);
-				solutionstream >> solution;
+				solutionstream >> solution >> ans;
 				if (!solution.length()) {
 					i--;
 					continue;
 				}
-				int solution_status = BDD::get_solution(solution);
+				int solution_status;
+				
+				if (ans == "1") {
+					solution_status = BDD::get_solution(solution);
+				}
+				else {
+					solution_status = BDD::get_unsolution(solution);
+				}
+
 				if (solution_status == 0) {
 					cout << "not accept solution " << solution << endl;
-					return -5;
+					return -6;
 				}
 				if (solution_status == -1) {
 					cout << "only accept 0 1 - : " << solution << endl;
-					return -6;
+					return -7;
 				}
 			}
 			for (string i: BDD::solution_list){
@@ -423,13 +489,14 @@ int main(int argc, char* argv[]) {
 		}
 		else {
 			cout << "unknow op :" << op << endl;
-			return -7;
+			return -8;
 		}
 	}
 	
 	BDD::make_tree();
 	BDD::make_easy();
 	BDD::print_out();
+	cout << BDD::get_link_data();
 
 	src.close();
 
