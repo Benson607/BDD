@@ -48,12 +48,21 @@ public:
 	}
 };
 
+bool in(Node* num, vector<Node*> list) {
+	for (Node* i: list) {
+		if (*num == *i) {
+			return true;
+		}
+	}
+	return false;
+}
+
 Node zero;
 Node one;
 
 namespace BDD {
 	int num_now = 0;
-	Node tree;
+	Node* tree = new Node();
 	int input_size;
 	int output_size;
 	vector<string> name_list;
@@ -126,7 +135,7 @@ namespace BDD {
 	int make_tree(Node* x = NULL, int times = 0, string solution = "") {
 		num_now++;
 		if (!times) {
-			x = &tree;
+			x = tree;
 		}
 		if (times < input_size - 1) {
 			x->num = num_now;
@@ -162,22 +171,22 @@ namespace BDD {
 				x->el = &zero;
 			}
 		}
-		if (!times) {
-			if (*x->th == *x->el) {
-				if (x->th != &zero && x->th != &one) {
-					delete x->th;
-				}
-				x->th = x->el;
-			}
-			x = tree.th;
-			tree = *x;
-		}
 		return 1;
 	}
-	string get_link_data(Node* x = NULL) {
+	string get_link_data(Node* x, vector<int>& pass) {
 		string result = "";
 		if (!x) {
-			x = &tree;
+			x = tree;
+		}
+		if (in(x->num, pass) && x->value == -1) {
+			result.append(x->name);
+			result.append(" 0 ");
+			result.append(to_string(x->num));
+			result.append("\n");
+			return result;
+		}
+		if (x->value == -1) {
+			pass.push_back(x->num);
 		}
 		if (x->value != -1) {
 			result.append("solusi ");
@@ -190,20 +199,37 @@ namespace BDD {
 		result.push_back(' ');
 		result.append(to_string(x->num));
 		result.append(" ");
-		result.append(get_link_data(x->el));
+		result.append(get_link_data(x->el, pass));
 		
 		result.append(x->name);
 		result.append(" 1");
 		result.push_back(' ');
 		result.append(to_string(x->num));
 		result.append(" ");
-		result.append(get_link_data(x->th));
+		result.append(get_link_data(x->th, pass));
 		
 		return result;
 	}
+	void get_layer(Node* x, int layer, vector<Node*>& layer_list, int times = 0) {
+		if (!x) {
+			x = tree;
+		}
+		if (times >= input_size) {
+			return;
+		}
+		if (x->name == name_list[layer]) {
+			get_layer(x->th, layer, layer_list, times + 1);
+			get_layer(x->el, layer, layer_list, times + 1);
+		}
+		else {
+			if (!in(x, layer_list)) {
+				layer_list.push_back(x);
+			}
+		}
+	}
 	int make_easy(Node* x = NULL) {
 		if (!x) {
-			x = &tree;
+			x = tree;
 		}
 		if (x->value != -1) {
 			return 0;
@@ -225,13 +251,81 @@ namespace BDD {
 				delete x->th;
 			}
 			x->th = x->el;
+			if (x == tree) {
+				x = tree->th;
+				tree = x;
+			}
 			return 1;
 		}
+		
+		return 0;
+	}
+	int make_easy_vertical(int times = 0) {
+		if (times < input_size - 2) {
+			make_easy_vertical(times + 1);
+		}
+		vector<Node*> layer_list(0);
+		get_layer(NULL, times, layer_list, 0);
+		vector<Node*> next_layer_list(0);
+		
+		for (int i = 0; i < layer_list.size(); i++) {
+			if (!in(layer_list[i]->th, next_layer_list)) {
+				next_layer_list.push_back(layer_list[i]->th);
+			}
+			if (!in(layer_list[i]->el, next_layer_list)) {
+				next_layer_list.push_back(layer_list[i]->el);
+			}
+		}
+		
+		for (Node* i: next_layer_list) {
+			for (Node* j: layer_list) {
+				if (j->th != i) {
+					if (*j->th == *i) {
+						//delete j->th;
+						j->th = i;
+					}
+				}
+				if (j->el != i) {
+					if (*j->el == *i) {
+						//delete j->el;
+						j->el = i;
+					}
+				}
+			}
+		}
+
+
+		return 0;
+	}
+	int make_easy_horizontal(Node* x = NULL, int times = 0) {
+		if (!x) {
+			x = tree;
+		}
+		cout << x->name << x->num << endl;
+		
+		if (x->value != -1) {
+			return 0;
+		}
+
+		int need_del;
+		need_del = make_easy_horizontal(x->el, times + 1);
+		if (need_del) {
+			x->el = x->el->th;
+		}
+		need_del = make_easy_horizontal(x->th, times + 1);
+		if (need_del) {
+			x->th = x->th->th;
+		}
+
+		if (x->th == x->el) {
+			return 1;
+		}
+
 		return 0;
 	}
 	void print_out(Node* x = NULL) {
 		if (!x) {
-			x = &tree;
+			x = tree;
 		}
 		if (x->value != -1) {
 			cout << x->value << endl;
@@ -247,7 +341,8 @@ namespace BDD {
 		result.append(file_name);
 		result.append(" {\n");
 		
-		string name_data = get_link_data();
+		vector<int> pass(0);
+		string name_data = get_link_data(NULL, pass);
 
 		vector<vector<int>> rank_list(input_size, vector<int>(0));
 		istringstream rankstream(name_data);
@@ -318,56 +413,60 @@ namespace BDD {
 		result.append(to_string(max_num));
 		result.append(" [label=\"1\", shape=box];\n\n");
 
-		int last_bool_value = -1;
-		int last_number = 0;
 		istringstream linkstream(name_data);
-		while (linkstream >> name) {
-			int number;
-			int bool_value;
-			if (!last_number) {
-				linkstream >> last_bool_value;
-				linkstream >> last_number;
-				continue;
-			}
-			result.append("\t");
-			if (name == "solusi") {
-				linkstream >> bool_value;
-				result.append(to_string(last_number));
-				result.append(" -> ");
-				if (bool_value) {
-					result.append(to_string(max_num));
+		string link;
+		while (getline(linkstream, link)) {
+			istringstream onelinestream(link);
+			int last_bool_value = -1;
+			int last_number = 0;
+			while (onelinestream >> name) {
+				int number;
+				int bool_value;
+				if (!last_number) {
+					onelinestream >> last_bool_value;
+					onelinestream >> last_number;
+					continue;
+				}
+				result.append("\t");
+				if (name == "solusi") {
+					onelinestream >> bool_value;
+					result.append(to_string(last_number));
+					result.append(" -> ");
+					if (bool_value) {
+						result.append(to_string(max_num));
+					}
+					else {
+						result.append("0");
+					}
+					result.append(" [label=\"");
+					result.append(to_string(last_bool_value));
+					if (last_bool_value) {
+						result.append("\", style=solid]\n");
+					}
+					else {
+						result.append("\", style=dotted]\n");
+					}
+					last_bool_value = -1;
+					last_number = 0;
 				}
 				else {
-					result.append("0");
+					onelinestream >> bool_value;
+					onelinestream >> number;
+					
+					result.append(to_string(last_number));
+					result.append(" -> ");
+					result.append(to_string(number));
+					result.append(" [label=\"");
+					result.append(to_string(last_bool_value));
+					if (last_bool_value) {
+						result.append("\", style=solid]\n");
+					}
+					else {
+						result.append("\", style=dotted]\n");
+					}
+					last_bool_value = bool_value;
+					last_number = number;
 				}
-				result.append(" [label=\"");
-				result.append(to_string(last_bool_value));
-				if (last_bool_value) {
-					result.append("\", style=solid]\n");
-				}
-				else {
-					result.append("\", style=dotted]\n");
-				}
-				last_bool_value = -1;
-				last_number = 0;
-			}
-			else {
-				linkstream >> bool_value;
-				linkstream >> number;
-				
-				result.append(to_string(last_number));
-				result.append(" -> ");
-				result.append(to_string(number));
-				result.append(" [label=\"");
-				result.append(to_string(last_bool_value));
-				if (last_bool_value) {
-					result.append("\", style=solid]\n");
-				}
-				else {
-					result.append("\", style=dotted]\n");
-				}
-				last_bool_value = bool_value;
-				last_number = number;
 			}
 		}
 
@@ -494,9 +593,16 @@ int main(int argc, char* argv[]) {
 	}
 	
 	BDD::make_tree();
-	BDD::make_easy();
+	cout << "make_tree" << endl;
+	BDD::make_easy_vertical();
+	cout << "make_ezsy2" << endl;
+	BDD::make_easy_horizontal();
+	cout << "make_easy_horizontal" << endl;
 	BDD::print_out();
-	cout << BDD::get_link_data();
+	cout << "data:" << endl;
+	
+	vector<int> pass(0);
+	cout << BDD::get_link_data(NULL, pass);
 
 	src.close();
 
