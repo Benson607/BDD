@@ -217,14 +217,12 @@ namespace BDD {
 		if (times >= input_size) {
 			return;
 		}
-		if (x->name == name_list[layer]) {
+		if (x->name != name_list[layer]) {
 			get_layer(x->th, layer, layer_list, times + 1);
 			get_layer(x->el, layer, layer_list, times + 1);
 		}
 		else {
-			if (!in(x, layer_list)) {
-				layer_list.push_back(x);
-			}
+			layer_list.push_back(x);
 		}
 	}
 	int make_easy(Node* x = NULL) {
@@ -266,6 +264,7 @@ namespace BDD {
 		}
 		vector<Node*> layer_list(0);
 		get_layer(NULL, times, layer_list, 0);
+		cout << layer_list.size() << endl;
 		vector<Node*> next_layer_list(0);
 		
 		for (int i = 0; i < layer_list.size(); i++) {
@@ -301,7 +300,6 @@ namespace BDD {
 		if (!x) {
 			x = tree;
 		}
-		cout << x->name << x->num << endl;
 		
 		if (x->value != -1) {
 			return 0;
@@ -522,8 +520,8 @@ int main(int argc, char* argv[]) {
 			string name;
 			while (orderstream >> name) {
 				for (int i = 0; i < name.length(); i++) {
-                    if (name[i] < 65 || 90 < name[i] && name[i] < 97 || name[i] > 122) {
-                        cout << "only accept big or small english letter: " << name << endl;
+                    if (name[i] < 48 || 57 < name[i] && name[i] < 65 || 90 < name[i] && name[i] < 97 && name[i] != 95 || name[i] > 122) {
+                        cout << "only accept english letter or number or _ : " << name << endl;
                         return -3;
                 	}
                 }
@@ -596,13 +594,9 @@ int main(int argc, char* argv[]) {
 	}
 	
 	BDD::make_tree();
-	cout << "make_tree" << endl;
 	BDD::make_easy_vertical();
-	cout << "make_ezsy2" << endl;
 	BDD::make_easy_horizontal();
-	cout << "make_easy_horizontal" << endl;
 	BDD::print_out();
-	cout << "data:" << endl;
 	
 	vector<int> pass(0);
 	cout << BDD::get_link_data(NULL, pass);
