@@ -28,6 +28,10 @@
 
 或是使用資料夾內提供的setup.sh
 
+    sudo bash setup.sh
+
+這將自動檢查您的系統是否有g++，若沒有安裝g++，則會幫您安裝，裝好後會自動幫您編譯main.cpp
+
 使用下面指令將pla轉換成dot
 
     ./main [pla來源] [目標dot檔案]
