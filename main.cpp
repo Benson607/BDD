@@ -317,7 +317,10 @@ namespace BDD {
 			x->th = x->th->th;
 		}
 
-		if (x->th == x->el) {
+		if (*x->th == *x->el) {
+			if (x == tree) {
+				tree = tree->th;
+			}
 			return 1;
 		}
 
