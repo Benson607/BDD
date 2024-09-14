@@ -1,4 +1,5 @@
 # 程式介紹
+
 此程式可將pla檔案轉換成dot檔案，但僅能處理單個output
 
 目前可處理之pla指令:
@@ -20,6 +21,7 @@
     set
 
 # 使用方式
+
 進入main.cpp所在之資料夾，並以g++進行編譯
 
     g++ main.cpp -o main
@@ -31,6 +33,8 @@
     sudo bash setup.sh
 
 這將自動檢查您的系統是否有g++，若沒有安裝g++，則會幫您安裝，裝好後會自動幫您編譯main.cpp
+
+若無法正常安裝g++，可能代表您的ubuntu版本過低，請使用更高版本的ubuntu
 
 使用下面指令將pla轉換成dot
 
